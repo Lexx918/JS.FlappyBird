@@ -1,0 +1,121 @@
+<script>
+(function(){
+    var run = 0, imp = 0;
+    function up(){
+        run = 1;
+
+        var
+        pos = 2,
+        rows = [1, 1, 1, 1, 0, 0, 0, 1, 1, 1],
+        rowsLen = 10,
+        fieldWidth = 30,
+        fieldMask = Math.pow(2, fieldWidth) - 1,
+        profit = 0,
+        hTop = 4,
+        row,
+        col,
+        timer = setInterval(function(){
+            /**
+             * Move user
+             */
+            if (imp > 1) {
+                imp--;
+                // up
+                --pos || _stop();
+            } else if (imp) {
+                imp--;
+            } else {
+                // down
+                pos < 9 ? pos++ : _stop();
+            }
+
+
+            /**
+             * Move field
+             *
+             * 0111110 - false
+             * ?011110 - true -> 011111
+             * ??01110 - true -> 001111
+             * ???0110 - true -> 000111
+             * ????010 - true -> 000011
+             */
+            for (row = rowsLen; row--;) {
+                rows[row] <<= 1;
+                rows[row] &= fieldMask;
+                if (rows[row] & 2) {
+                    for (w = 2; w <= 5; w++) {
+                        if (!(rows[row] & 1 << w)) {
+                            rows[row] |= 1;
+                            break;
+                        }
+                    }
+                }
+            }
+
+
+            /**
+             * Add new objects
+             *
+             *
+             * 000011111 ->     0% (0 * 12.5) 0
+             * 000111110 ->     0% (0 * 12.5) 1
+             * 001111100 ->  12.5% (1 * 12.5) 2
+             * 011111000 ->  25.0% (2 * 12.5) 3
+             * 111110000 ->  37.5% (3 * 12.5) ..
+             * 111100000 ->  50.0% (4 * 12.5)
+             * 111000000 ->  62.5% (5 * 12.5)
+             * 110000000 ->  75.0% (6 * 12.5)
+             * 100000000 ->  87.5% (7 * 12.5)
+             * 000000000 -> 100.0% (8 * 12.5)
+             */
+            for (var tryNum = 0; true; tryNum++) {
+                if (rows[0] & 1 << tryNum) {
+                    if (tryNum > 1 && (tryNum - 2) * 125 + profit > _rnd(124, 999)) {
+                        hTop = _rnd(hTop > 2 ? hTop - 1 : 2, hTop < 5 ? hTop + 1 : 5); // 2..5, prev +/- 1
+                        for (h = 0; h < hTop; h++) {
+                            rows[h] |= 1;
+                        }
+                        for (h = hTop + 3; h < rowsLen; h++) {
+                            rows[h] |= 1;
+                        }
+                    }
+                    break;
+                }
+            }
+
+            /**
+             * Render
+             */
+            var text = '';
+            for (row = 0; row < rowsLen; row++) {
+                for (col = 29; col >= 0; col--) {
+                    text += col == 28 && row == pos ? "0" : (
+                        rows[row] & 1 << col ? "+" : (
+                            !row || row == rowsLen - 1 ? "-" : " "
+                        )
+                    );
+                }
+                text += "\n";
+            }
+            profit += (rows[0] & 1 << 29) && !(rows[0] & 1 << 28) ? 1 : 0;
+            text += "\n"+profit;
+            pre.innerHTML = text;
+
+            if (rows[pos] & 1 << 28) {
+                _stop();
+            }
+        }, 250);
+
+        var _rnd = function(min, max){
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+        var _stop = function(){
+            clearInterval(timer);
+            run && alert(':(');
+            run = 0;
+        }
+    }
+    onkeyup = function(e){ e.which == 38 && (run ? imp = 3 : up()); };
+})()
+</script>
+<body onload=""><pre id="pre">press up!
